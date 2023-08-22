@@ -316,8 +316,9 @@ class navigation_side_bar(tk.Frame):
     #FUNCTIONS ASSOCIATED WITH SIDEBAR BUTTONS
         
     def search_frame_button_event(self):
-        self.place_saved_part()
+        
         self.controller.show_frame("SearchPage")
+        self.place_saved_part()
         
     def export_to_csv_button_event(self):
         
@@ -626,10 +627,7 @@ class SearchPage(navigation_side_bar):
         number_of_parts_saved +=1
         
         for i in range(self.controller.shared_data["number_of_parts"]):
-            self.controller.shared_data['saved_part_button'][i].grid(row = i, sticky ='snew')
-        
-        # for i in range(self.controller.shared_data["number_of_parts"]):
-        #     self.controller.shared_data['saved_part_button'][i].grid(row = i, sticky ='new')
+            self.controller.shared_data['saved_part_button'][i].grid(row = i, sticky ='new')
         
     def navigation_frame_saved_part_button_event(self, number):
         
@@ -747,8 +745,8 @@ class SavedFrame(navigation_side_bar):
         self.part_description = customtkinter.CTkLabel(self.part_product_information_frame, text = '',  text_color = "#CC0000")
         self.part_description.grid(row=0, pady = (0, 10))
         
-        self.delete_button = customtkinter.CTkButton(self.blank_frame, text = 'Delete', command = self.delete_event)
-        self.delete_button.grid(row =1)
+        self.delete_button = customtkinter.CTkButton(self.blank_frame, text = 'Delete', command = self.delete_event, compound="top", fg_color="#CC0000",  hover_color="#80200B")
+        self.delete_button.grid(row=1, column=1, padx=5, pady=10, sticky='new')
         
         self.not_checkboxes_list=["Url", "Datasheet", "Quality Estimator Url", "Id", "Description", "Material Content URL"]
         
@@ -768,9 +766,10 @@ class SavedFrame(navigation_side_bar):
     
     def display_saved_info(self, current_info):
         
+        # REMOVE ALL SAVED BUTTONS FROM SIDE BAR
         self.remove_buttons_navigation()
         
-        # PLACE DOWN BUTTONS FOR SAVED PARTS IN NAVIGATION FRAME -- USING SEARCH PAGE OBJECT
+        # PLACE DOWN BUTTONS FOR SAVED PARTS IN NAVIGATION FRAME -- USING SEARCH PAGE OBJECT, BASED OFF CURRENT NUMBER OF SAVED PARTS
         for i in range(self.controller.shared_data["number_of_parts"]):
             
             self.this = customtkinter.CTkButton(self.navigation_frame, fg_color ="transparent", text = self.controller.shared_data['saved_part_info'][i]['Identifier'], height=40, border_spacing=10, command = lambda i=i : self.search_page.navigation_frame_saved_part_button_event(i), text_color='white', image=self.save_logo, corner_radius=0, hover_color="#80200B")
@@ -853,24 +852,7 @@ class SavedFrame(navigation_side_bar):
                 self.display_saved_info(display_data)
                 
             except:
-                self.controller.show_frame("SearchPage")
-                
-                
-        
-
-        
-        
-        # # PLACE DOWN BUTTONS FOR SAVED PARTS IN NAVIGATION FRAME -- USING SEARCH PAGE OBJECT
-        # for i in range(self.controller.shared_data["number_of_parts"]):
-            
-        #     self.this = customtkinter.CTkButton(self.navigation_frame, fg_color ="transparent", text = self.controller.shared_data['saved_part_info'][i]['Identifier'], height=40, border_spacing=10, command = lambda i=i : self.search_page.navigation_frame_saved_part_button_event(i), text_color='white', image=self.save_logo, corner_radius=0, hover_color="#80200B")
-        #     self.buttons.append(self.this)
-        #     self.this.grid(row=i, sticky='new')
-
-        
-        
-
-            
+                self.controller.show_frame("SearchPage")     
         
 # RUN THE APP
 if __name__ == "__main__":

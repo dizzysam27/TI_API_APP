@@ -53,7 +53,7 @@ class App(tk.Tk):
             
         # CYCLE THROUGH THE AVAILABLE PAGES AND CREATE A LIST OF FRAMES
         self.frames = {}
-        for F in (LoginPage, MouserLoginPage, DigiKeyLoginPage, SearchPage, SavedFrame):
+        for F in (LoginPage, MouserLoginPage, DigiKeyLoginPage, SearchPage, gpnFrame, SavedFrame):
 
             # PUT ALL THE PAGES IN THE SAME LOCATION AND THE ONE ON TOP OF THE STACKING ORDER WILL BE THE ONE THAT IS
             # VISIBLE
@@ -188,8 +188,6 @@ class MouserLoginPage(tk.Frame):
         #user = Retrieve_Token.Authenticate(self.username_entry.get(), self.password_entry.get())
         user = Retrieve_Mouser_Info.MouserInfo(self.username_entry.get())
 
-        
-        # SETS THE TOKEN VARIABLE AS GLOBAL SO THE TOKEN CAN BE ACCESSED BY ANY CLASS TO MAKE INFORMATION REQUESTS
 
         # IF THE TOKEN IS VALID THEN WE MOVE TO THE PAGEONE
         if token == 0:
@@ -238,10 +236,6 @@ class DigiKeyLoginPage(tk.Frame):
         #user = Retrieve_Token.Authenticate(self.username_entry.get(), self.password_entry.get())
         user = Retrieve_Token.Authenticate('l8g9S577exxtpmCSGC56mnBsT2REZN7a', 'CROP7wM4aXq3A6Oz')
 
-        # SETS THE TOKEN VARIABLE AS GLOBAL SO THE TOKEN CAN BE ACCESSED BY ANY CLASS TO MAKE INFORMATION REQUESTS
-        global token
-        token = user.authenticate_token()
-
         # IF THE TOKEN IS VALID THEN WE MOVE TO THE PAGEONE
         if token == 0:
             invalid_label = customtkinter.CTkLabel(self.background, text="Invalid Login", width=200, corner_radius=5, bg_color='yellow')
@@ -286,9 +280,9 @@ class navigation_side_bar(tk.Frame):
         navigation_frame_label = customtkinter.CTkLabel(actual_navigation_frame, text="", image=self.logo_image, bg_color="white",corner_radius=10,compound="left", font=customtkinter.CTkFont(size=15, weight="bold"))
         navigation_frame_label.grid(row=0, column=0, padx=0, pady=0, sticky="nsew")
         
-        search_frame_button = customtkinter.CTkButton(actual_navigation_frame, height=40, border_spacing=10, text="Search",command=self.search_frame_button_event, fg_color="white", text_color="black", corner_radius = 0, 
+        self.search_frame_button = customtkinter.CTkButton(actual_navigation_frame, height=40, border_spacing=10, text="Search",command=self.search_frame_button_event, fg_color="white", text_color="black", corner_radius = 0, 
                                                            image=self.chat_image, anchor="w")
-        search_frame_button.grid(row=1, column=0, sticky="nsew")
+        self.search_frame_button.grid(row=1, column=0, sticky="nsew")
 
         export_to_csv_button = customtkinter.CTkButton(actual_navigation_frame, height=40, border_spacing=10, text="Export to CSV",command=self.export_to_csv_button_event, fg_color="white", text_color="black", corner_radius = 0, 
                                                            image=self.export_to_csv_image, anchor="w")
@@ -322,6 +316,7 @@ class navigation_side_bar(tk.Frame):
     #FUNCTIONS ASSOCIATED WITH SIDEBAR BUTTONS
         
     def search_frame_button_event(self):
+        self.place_saved_part()
         self.controller.show_frame("SearchPage")
         
     def export_to_csv_button_event(self):
@@ -352,14 +347,21 @@ class navigation_side_bar(tk.Frame):
         
     def place_saved_part(self):
         
+        try:
+            for widgets in self.navigation_frame.winfo_children():
+                widgets.destroy()
+        except:
+            pass
         # PLACE DOWN ALL BUTTONS CREATED
         for i in range(self.controller.shared_data["number_of_parts"]):
             self.controller.shared_data['saved_part_button'][i].grid(row = i, sticky ='snew')
             
-            print('h')
+    def remove_buttons_navigation(self):
         
-    
-        
+        for widgets in self.navigation_frame.winfo_children():
+            widgets.destroy()
+            
+
 class SearchPage(navigation_side_bar):
     
     def __init__(self, parent, controller):
@@ -373,14 +375,14 @@ class SearchPage(navigation_side_bar):
         
         # INHERIT THE SIDE BAR
         super().__init__(parent, controller)
-        
+                
         # SET UP THE SEARCH FRAME WITH AN ENTRY BOX, SEARCH BUTTON AND NEW_PART_BUTTON
         search_frame = customtkinter.CTkFrame(self.blank_frame, corner_radius=0, fg_color="white")
         search_frame.grid_columnconfigure(0, weight=1)
         search_frame.grid_rowconfigure(1, weight= 1)
         self.search_frame_search_entry = customtkinter.CTkEntry(self.blank_frame, width=300, placeholder_text="Part Number")
         self.search_frame_search_entry.grid(row=1, column=0, padx=5, pady=10, sticky="new")
-        self.search_frame_search_button = customtkinter.CTkButton(self.blank_frame, text="Search",command=self.search_event, compound="top", fg_color="#CC0000",  hover_color="#80200B")
+        self.search_frame_search_button = customtkinter.CTkButton(self.blank_frame, text="Search",command= lambda f=None: self.search_event(f), compound="top", fg_color="#CC0000",  hover_color="#80200B")
         self.search_frame_search_button.grid(row=1, column=1, padx=5, pady=10, sticky='new')
         search_frame_new_part_button = customtkinter.CTkButton(self.blank_frame, text="Save", command= self.new_part, compound="top", fg_color="#CC0000",  hover_color="#80200B")
         search_frame_new_part_button.grid(row=1, column=2, padx=5, pady=10, sticky='new')
@@ -463,56 +465,65 @@ class SearchPage(navigation_side_bar):
         tk.messagebox.showinfo(title=None, message="Copied to clipboard")
         
     # FUNCTION FOR WHEN THE SEARCH BUTTON IS PRESSED   
-    def search_event(self):
+    def search_event(self, part_name):
         
         # RETRIEVE THE PRODUCT INFO FROM THE PRODUCT INFO API
-        self.part = Retrieve_Product_Info.Info(self.search_frame_search_entry.get(), token)
+        if part_name == None:
+            self.part_name_search = self.search_frame_search_entry.get()
+        else:
+            self.part_name_search = part_name
+            
+        self.part = Retrieve_Product_Info.Info(self.part_name_search, token)
         
         # STORE INFO IN ARRAY CALLED_INFO
         self.called_info= self.part.call_info()
         self.switch_master.select()
 
-        # DISPLAYS NAME OF PRODUCT AS TITLE OF SCROLLABLE FRAME
-        self.part_product_information_frame.configure(label_text = self.called_info[navigation_side_bar.info_get[0]])
-        # DISPLAYS DISCRIPTION OF PRODUCT
-        self.part_description.configure(text = self.called_info[navigation_side_bar.info_get[1]])
+        # TRIES TO DISPLAY INFO OF MATERIAL, EXCEPTION IF IT IS A GPN SEARCH
+        try:
+            self.part_product_information_frame.configure(label_text = self.called_info[navigation_side_bar.info_get[0]])
         
-        # CHECKS TO SEE IF PRODUCT INFORMATION IS AVAILABLE ABOUT THE PART AND DISPLAYS THE DATA ACCORDINGLY
-        count = 0
-        self.info_table=self.make_table(30)
-        self.info_table.grid(row = 1, column = 0, sticky='nsew')
-        for i in range(len(navigation_side_bar.info_types)):
+            # DISPLAYS DISCRIPTION OF PRODUCT
+            self.part_description.configure(text = self.called_info[navigation_side_bar.info_get[1]])
             
-            # DISPLAY TITLE OF DATA 
-            info_text = navigation_side_bar.info_types[i]
-            # IGNORES URLs AS THEY HAVE SEPERATE BUTTON
-            if info_text in self.not_checkboxes_list:
-                pass
-            
-            # DISPLAYS DATA IN TABLE
-            else:
-                # SELECTS FILTER SWITCHES
-                self.product_information_frame_switches[count].select()
-                self.switch_state[count]=1
+            # CHECKS TO SEE IF PRODUCT INFORMATION IS AVAILABLE ABOUT THE PART AND DISPLAYS THE DATA ACCORDINGLY
+            count = 0
+            self.info_table=self.make_table(30)
+            self.info_table.grid(row = 1, column = 0, sticky='nsew')
+            for i in range(len(navigation_side_bar.info_types)):
                 
-
-                # TRIES FINDING INFO IN DICTIONARY
-                try:
-                    self.info_table.insert(count, 0, info_text, text_color = 'black')
-                    textDisplay = str( self.called_info[navigation_side_bar.info_get[i]] )
-                    self.info_table.insert(count, 1, textDisplay, text_color = 'black')
-                    
-                # IF NO INFO IN DICTIONARY, PRINT N/A IN DIFFERENT COLOUR
-                except KeyError:
-                    # DOESN'T WORK ATM AS DOESN'T SHOW NO INFORMATION
-                    # try:
-                    #         gpns = Retrieve_Product_Order_Info.Search_by_GPN(token, self.search_frame_search_entry.get())
-                    #         print(gpns.find_all_opns_from_gpn())
+                # DISPLAY TITLE OF DATA 
+                info_text = navigation_side_bar.info_types[i]
+                # IGNORES URLs AS THEY HAVE SEPERATE BUTTON
+                if info_text in self.not_checkboxes_list:
+                    pass
+                
+                # DISPLAYS DATA IN TABLE
+                else:
+                    # SELECTS FILTER SWITCHES
+                    self.product_information_frame_switches[count].select()
+                    self.switch_state[count]=1
+            
+                    # TRIES FINDING INFO IN DICTIONARY
+                    try:
+                        self.info_table.insert(count, 0, info_text, text_color = 'black')
+                        textDisplay = str( self.called_info[navigation_side_bar.info_get[i]] )
+                        self.info_table.insert(count, 1, textDisplay, text_color = 'black')
+                        
+                    # IF NO INFO IN DICTIONARY, PRINT N/A IN DIFFERENT COLOUR
+                    except KeyError:
+                        # DOESN'T WORK ATM AS DOESN'T SHOW NO INFORMATION
                     
                         self.info_table.insert(count, 0, info_text, text_color = '#ad9d05')
                         textNothing = "Information not available"
                         self.info_table.insert(count, 1, textNothing, text_color = '#ad9d05')
-                count +=1
+                    count +=1
+                    
+        # IF IT CAN'T FIND KEY THEN IT IS A GPN
+        except KeyError:
+            self.controller.show_frame("gpnFrame")
+            gpn_object = self.controller.get_page('gpnFrame')
+            gpn_object.display_gpn()
         
     # SETS ALL THE FILTERS TO ACTIVE. DISPLAY ALL DATA WHEN THE ALL CHECKBOX IS SELECTED
     def enable_all_filters(self):
@@ -614,7 +625,9 @@ class SearchPage(navigation_side_bar):
         self.controller.shared_data["number_of_parts"] = (number_of_parts_saved+1)
         number_of_parts_saved +=1
         
-        self.place_saved_part()
+        for i in range(self.controller.shared_data["number_of_parts"]):
+            self.controller.shared_data['saved_part_button'][i].grid(row = i, sticky ='snew')
+        
         # for i in range(self.controller.shared_data["number_of_parts"]):
         #     self.controller.shared_data['saved_part_button'][i].grid(row = i, sticky ='new')
         
@@ -626,13 +639,10 @@ class SearchPage(navigation_side_bar):
         
         # CALL FUNCTION IN SAVED FRAME, WHICH DISPLAYS SAVED DATA IMMEDIATELY ---IMPORTANT
         save_page = self.controller.get_page("SavedFrame")
-        save_page.display_saved_info()
+        save_page.display_saved_info(self.controller.shared_data["saved_part_info"][self.controller.shared_data["current_number"]])
         
     def tiwebsite_event(self):
         webbrowser.open(self.called_info['Url'])
-        
-        gpns = Retrieve_Product_Order_Info.Search_by_GPN(token, self.search_frame_search_entry.get())
-        #print(gpns.find_all_opns_from_gpn())
                 
     def datasheet_event(self):
         webbrowser.open(self.called_info['DatasheetUrl'])
@@ -642,6 +652,83 @@ class SearchPage(navigation_side_bar):
         
     def material_content_event(self):
         webbrowser.open(self.called_info['MaterialContentUrl'])
+        
+class gpnFrame(navigation_side_bar):
+    
+    def __init__(self, parent, controller):
+        
+        super().__init__(parent, controller)
+        
+         # FIRST SCROLLABLE WIDGET: CONTAINS THE PRODUCT INFORMATION
+        self.gpn_frame = customtkinter.CTkScrollableFrame(self.blank_frame, label_text="", label_fg_color = "#80200B", label_text_color = 'white')
+        self.gpn_frame.grid(row=1, padx=(5,0), pady = (50, 5), sticky="nsew")
+        self.gpn_frame.grid_columnconfigure(0, weight =1)
+        self.gpn_frame.grid_rowconfigure(1, weight=1)
+        
+        self.description = customtkinter.CTkLabel(self.gpn_frame, text = '')
+        self.description.grid(row=0, pady = (0, 10))
+        
+    def make_table(self, rows):
+        try:
+            self.opn_table.grid_forget()
+        except:
+            pass
+        
+        info_table = CTkTable(master=self.gpn_frame, row = rows+1 , column=2 ,values = '', command = self.command, wraplength = '200', corner_radius=0, header_color = "#CC0000", hover_color="#6666ff")
+    
+        return info_table
+        
+    def display_gpn(self):
+        
+        # CREATE OBJECT TO GET SEARCH FRAME ENTRY FROM OTHER CLASS
+        self.search_page_object = self.controller.get_page("SearchPage")
+        gpn_name = self.search_page_object.search_frame_search_entry.get()
+        
+        # PLACE DOWN BUTTONS FOR SAVED PARTS IN NAVIGATION FRAME -- USING SEARCH PAGE OBJECT
+        for i in range(self.controller.shared_data["number_of_parts"]):
+            self.this = customtkinter.CTkButton(self.navigation_frame, fg_color ="transparent", text = self.controller.shared_data['saved_part_info'][i]['Identifier'], height=40, border_spacing=10, command = lambda i=i : self.search_page_object.navigation_frame_saved_part_button_event(i), text_color='white', image=self.save_logo, corner_radius=0, hover_color="#80200B")
+            self.this.grid(row=i, sticky='new')
+        
+        # MAKE TITLE OF SCROLLABLE FRAME GPN 
+        self.gpn_frame.configure(label_text = gpn_name)
+        
+        # GET ALL OPNs
+        gpns_object = Retrieve_Product_Order_Info.Search_by_GPN(token, gpn_name)
+        all_opns = gpns_object.find_all_opns_from_gpn()
+        
+         # MAKE DESCRIPTION OF GPN (THEY ALL HAVE SAME DESCRIPTION)
+        self.description.configure(text = all_opns[0]['description'])
+        
+        # MAKE TABLE TO DISPLAY ALL OPNS
+        self.opn_table = self.make_table(len(all_opns))
+        self.opn_table.insert(0, 0, 'OPN')
+        self.opn_table.insert(0, 1, 'Quantity')
+        self.opn_table.grid(row = 1, column = 0, sticky='new')
+
+        for i in range(len(all_opns)):
+            part_number = all_opns[i]['tiPartNumber']
+            self.opn_table.insert(i+1, 0, part_number)
+            
+            qty = all_opns[i]['quantity']
+            self.opn_table.insert(i+1, 1, qty)
+            
+    def command(self, position):
+        
+        try:
+            self.opn_table.deselect_row(self.pos_row)
+        except:
+            pass
+        # GET ROW AND COLUMN OF SELECTED CELL
+        self.pos_row = position['row']
+        
+        # GET VALUE IN CELL (HAVE TO DO LIKE THIS OTHERWISE RETURNS WHOLE TABLE FOR SOME CELLS)
+        self.opn_table.select_row(self.pos_row)
+        cell_list = self.opn_table.get()
+        
+        opn = cell_list[self.pos_row][0]
+        
+        self.controller.show_frame('SearchPage')
+        self.search_page_object.search_event(opn) 
 
 class SavedFrame(navigation_side_bar):
     
@@ -660,7 +747,14 @@ class SavedFrame(navigation_side_bar):
         self.part_description = customtkinter.CTkLabel(self.part_product_information_frame, text = '',  text_color = "#CC0000")
         self.part_description.grid(row=0, pady = (0, 10))
         
+        self.delete_button = customtkinter.CTkButton(self.blank_frame, text = 'Delete', command = self.delete_event)
+        self.delete_button.grid(row =1)
+        
         self.not_checkboxes_list=["Url", "Datasheet", "Quality Estimator Url", "Id", "Description", "Material Content URL"]
+        
+        # CREATE OBJECT SEARCH PAGE 
+        self.search_page = self.controller.get_page("SearchPage")
+        
         
     def make_table(self, rows):
         try:
@@ -671,16 +765,21 @@ class SavedFrame(navigation_side_bar):
         info_table = CTkTable(master=self.part_product_information_frame, row = rows , column=2 ,values = '', wraplength = '200', corner_radius=0, command = self.command)
 
         return info_table
-        
-    def display_saved_info(self):
-        
-        
-        count = 0
     
+    def display_saved_info(self, current_info):
+        
+        self.remove_buttons_navigation()
+        
+        # PLACE DOWN BUTTONS FOR SAVED PARTS IN NAVIGATION FRAME -- USING SEARCH PAGE OBJECT
+        for i in range(self.controller.shared_data["number_of_parts"]):
+            
+            self.this = customtkinter.CTkButton(self.navigation_frame, fg_color ="transparent", text = self.controller.shared_data['saved_part_info'][i]['Identifier'], height=40, border_spacing=10, command = lambda i=i : self.search_page.navigation_frame_saved_part_button_event(i), text_color='white', image=self.save_logo, corner_radius=0, hover_color="#80200B")
+            self.this.grid(row=i, sticky='new')  
+        
+        # MAKE TABLE TO PLACE SAVED INFORMATION
+        count = 0
         self.saved_info_table=self.make_table(30)
         self.saved_info_table.grid(row = 1, column = 0,  sticky='new')
-        
-        current_info = self.controller.shared_data["saved_part_info"][self.controller.shared_data["current_number"]]
         
         # DISPLAYS NAME OF PRODUCT AS TITLE OF SCROLLABLE FRAME
         self.part_product_information_frame.configure(label_text = current_info[navigation_side_bar.info_get[0]])
@@ -698,7 +797,6 @@ class SavedFrame(navigation_side_bar):
             
             # DISPLAYS DATA IN TABLE
             else:
-
                 # TRIES FINDING INFO IN DICTIONARY
                 try:
                     self.saved_info_table.insert(count, 0, info_text, text_color = 'black')
@@ -707,14 +805,11 @@ class SavedFrame(navigation_side_bar):
                     
                 # IF NO INFO IN DICTIONARY, PRINT N/A IN DIFFERENT COLOUR
                 except KeyError:
-                    
                         self.saved_info_table.insert(count, 0, info_text, text_color = '#ad9d05')
                         textNothing = "Information not available"
                         self.saved_info_table.insert(count, 1, textNothing, text_color = '#ad9d05')
                 count +=1
-            
-        self.place_saved_part()
-    
+                
     def command(self, position):
         
         try:
@@ -734,6 +829,48 @@ class SavedFrame(navigation_side_bar):
         # COPY TO CLIPBOARD AND DISPLAY MESSAGE
         pyperclip.copy(cell_list[self.pos_row][self.pos_col])
         tk.messagebox.showinfo(title=None, message="Copied to clipboard")
+        
+    def delete_event(self):
+    
+        try:
+            self.controller.shared_data["saved_part_info"].pop(self.controller.shared_data["current_number"])
+            self.controller.shared_data["saved_part_button"].pop(self.controller.shared_data["current_number"])
+            self.controller.shared_data["current_number"] -= 1
+            self.controller.shared_data["number_of_parts"] -= 1
+            display_data = self.controller.shared_data["saved_part_info"][self.controller.shared_data["current_number"]]
+        
+            self.display_saved_info(display_data)
+            
+        except IndexError:
+            
+            try:
+                self.controller.shared_data["saved_part_info"].pop(self.controller.shared_data["current_number"])
+                self.controller.shared_data["saved_part_button"].pop(self.controller.shared_data["current_number"])
+                self.controller.shared_data["current_number"] += 2
+                self.controller.shared_data["number_of_parts"] += 2
+                display_data = self.controller.shared_data["saved_part_info"][self.controller.shared_data["current_number"]]
+                
+                self.display_saved_info(display_data)
+                
+            except:
+                self.controller.show_frame("SearchPage")
+                
+                
+        
+
+        
+        
+        # # PLACE DOWN BUTTONS FOR SAVED PARTS IN NAVIGATION FRAME -- USING SEARCH PAGE OBJECT
+        # for i in range(self.controller.shared_data["number_of_parts"]):
+            
+        #     self.this = customtkinter.CTkButton(self.navigation_frame, fg_color ="transparent", text = self.controller.shared_data['saved_part_info'][i]['Identifier'], height=40, border_spacing=10, command = lambda i=i : self.search_page.navigation_frame_saved_part_button_event(i), text_color='white', image=self.save_logo, corner_radius=0, hover_color="#80200B")
+        #     self.buttons.append(self.this)
+        #     self.this.grid(row=i, sticky='new')
+
+        
+        
+
+            
         
 # RUN THE APP
 if __name__ == "__main__":

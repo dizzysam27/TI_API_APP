@@ -27,6 +27,7 @@ class Search_by_GPN():
 
         self.token = token
         self.gpn = gpn
+        
     def find_all_opns_from_gpn(self):
 
         api_call_headers = {'Authorization': 'Bearer ' + self.token}
@@ -36,7 +37,7 @@ class Search_by_GPN():
 
         # print(api_call_response.text)
         product_order_info = api_call_response.text
-        print(product_order_info)
+        # print(product_order_info)
 
         try:
             product_order_info = product_order_info.replace("null","True")
@@ -62,11 +63,7 @@ class Search_by_GPN():
         for value in product_order_info.values():
             order_info_values.append(value)
 
-        gpns = []
-        for i in range(len(order_info_values[0])):
-            gpns.append(order_info_values[0][i])
-            print(gpns[-1]['tiPartNumber'])
-            print(gpns[-1]['quantity'])
+        return order_info_values[0]
 
     
 

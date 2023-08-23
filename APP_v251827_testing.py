@@ -9,6 +9,7 @@ import webbrowser
 from CTkTable import *
 from CTkMessagebox import CTkMessagebox
 import pyperclip
+import numpy
 
 
 # SETS THE LOCATION OF THE IMAGE FOLDER WHEN THE IMAGES USED WITHIN THE PROGRAM ARE STORED
@@ -317,9 +318,9 @@ class navigation_side_bar(tk.Frame):
         
     def search_frame_button_event(self):
         
-        self.controller.show_frame("SearchPage")
-        self.place_saved_part()
-        
+        self.search_page_object = self.controller.get_page("SearchPage")
+        self.search_page_object.search_navigation_bar_search_page()
+
     def export_to_csv_button_event(self):
         
         selected_product_info_for_part = []
@@ -345,18 +346,7 @@ class navigation_side_bar(tk.Frame):
         df.columns = selected_product_info_columns
         
         df.to_csv("parts.csv")
-        
-    def place_saved_part(self):
-        
-        try:
-            for widgets in self.navigation_frame.winfo_children():
-                widgets.destroy()
-        except:
-            pass
-        # PLACE DOWN ALL BUTTONS CREATED
-        for i in range(self.controller.shared_data["number_of_parts"]):
-            self.controller.shared_data['saved_part_button'][i].grid(row = i, sticky ='snew')
-            
+
     def remove_buttons_navigation(self):
         
         for widgets in self.navigation_frame.winfo_children():
@@ -651,6 +641,22 @@ class SearchPage(navigation_side_bar):
     def material_content_event(self):
         webbrowser.open(self.called_info['MaterialContentUrl'])
         
+    def search_page_from_saved(self):
+        
+        # USED TO DELETE ALL SAVED NAVIGATION_BUTTONS
+        self.controller.show_frame("SearchPage")
+        self.remove_buttons_navigation()
+        
+    def search_navigation_bar_search_page(self):
+        
+        self.controller.show_frame("SearchPage")
+        
+        for widgets in self.navigation_frame.winfo_children():
+            widgets.grid_forget()
+        
+        for i in range(self.controller.shared_data["number_of_parts"]):
+            self.controller.shared_data['saved_part_button'][i].grid(row = i, sticky ='new')
+        
 class gpnFrame(navigation_side_bar):
     
     def __init__(self, parent, controller):
@@ -702,14 +708,24 @@ class gpnFrame(navigation_side_bar):
         self.opn_table.insert(0, 0, 'OPN')
         self.opn_table.insert(0, 1, 'Quantity')
         self.opn_table.grid(row = 1, column = 0, sticky='new')
-
+        
+        # ARRAYS FOR PART NUMBER AND QUANTITY
+        qty = []
+        
         for i in range(len(all_opns)):
-            part_number = all_opns[i]['tiPartNumber']
-            self.opn_table.insert(i+1, 0, part_number)
+            qty.append(all_opns[i]['quantity'])
             
-            qty = all_opns[i]['quantity']
-            self.opn_table.insert(i+1, 1, qty)
+        qty_index_descending = numpy.argsort(qty)[::-1]
+        
+        count = 1
+        for j in qty_index_descending:
+            part_number = all_opns[j]['tiPartNumber']
+            self.opn_table.insert(count, 0, part_number)
             
+            self.opn_table.insert(count, 1, qty[j])
+            
+            count += 1
+
     def command(self, position):
         
         try:
@@ -830,29 +846,34 @@ class SavedFrame(navigation_side_bar):
         tk.messagebox.showinfo(title=None, message="Copied to clipboard")
         
     def delete_event(self):
-    
-        try:
-            self.controller.shared_data["saved_part_info"].pop(self.controller.shared_data["current_number"])
-            self.controller.shared_data["saved_part_button"].pop(self.controller.shared_data["current_number"])
-            self.controller.shared_data["current_number"] -= 1
-            self.controller.shared_data["number_of_parts"] -= 1
-            display_data = self.controller.shared_data["saved_part_info"][self.controller.shared_data["current_number"]]
         
+        # REMOVES BUTTON INFO AND PART DATA
+      
+        self.controller.shared_data["saved_part_info"].pop(self.controller.shared_data["current_number"])
+        self.controller.shared_data["saved_part_button"].pop(self.controller.shared_data["current_number"])
+        
+        try:
+            # TRIES TO DISPLAY NEXT PART IN SAVED DATA DICTIONARY
+            display_data = self.controller.shared_data["saved_part_info"][self.controller.shared_data["current_number"]]
+            
+            self.controller.shared_data['number_of_parts'] -= 1        
             self.display_saved_info(display_data)
             
         except IndexError:
-            
+            # IF IT DOESN'T EXIST, TRIES TO DISPLAY PREVIOUS SAVED DATA
             try:
-                self.controller.shared_data["saved_part_info"].pop(self.controller.shared_data["current_number"])
-                self.controller.shared_data["saved_part_button"].pop(self.controller.shared_data["current_number"])
-                self.controller.shared_data["current_number"] += 2
-                self.controller.shared_data["number_of_parts"] += 2
-                display_data = self.controller.shared_data["saved_part_info"][self.controller.shared_data["current_number"]]
+                display_data = self.controller.shared_data["saved_part_info"][self.controller.shared_data["current_number"]-1]
                 
+                self.controller.shared_data["current_number"] -= 1
+                self.controller.shared_data['number_of_parts'] -= 1        
                 self.display_saved_info(display_data)
-                
+
+            # IF NO MORE SAVED PARTS, MOVE TO SEARCH PAGE AND UPDATE VALUES TO ZERO
             except:
-                self.controller.show_frame("SearchPage")     
+                   
+                self.controller.shared_data["number_of_parts"] = 0  
+                self.controller.shared_data["current_number"] = 0
+                self.search_page.search_page_from_saved()
         
 # RUN THE APP
 if __name__ == "__main__":

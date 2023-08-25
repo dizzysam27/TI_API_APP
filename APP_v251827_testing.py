@@ -669,7 +669,7 @@ class gpnFrame(navigation_side_bar):
         self.gpn_frame.grid_columnconfigure(0, weight =1)
         self.gpn_frame.grid_rowconfigure(1, weight=1)
         
-        self.current_currency = ''
+        self.current_currency = 'GBP'
         
         # DROPDOWN BOX TO CHANGE CURRENCY
         self.currency_box = customtkinter.CTkComboBox(self.blank_frame, values = ["GBP", "USD", "EUR"], command = self.currency_select, border_color ="#CC0000", corner_radius=5, button_color="#CC0000", dropdown_fg_color = "white", button_hover_color="#80200B", dropdown_hover_color="#CC0000", state = 'readonly')
@@ -709,8 +709,12 @@ class gpnFrame(navigation_side_bar):
         # GET ALL OPNs
         self.gpns_object = Retrieve_Product_Order_Info.Search_by_GPN(token, gpn_name)
         
+        self.current_currency = "GBP"
+        self.currency_box.set(value = self.current_currency)
+        self.sort_box.set(value = "Inventory Desc.")
         
-        all_opns = self.gpns_object.find_all_opns_from_gpn("GBP")
+        all_opns = self.gpns_object.find_all_opns_from_gpn(self.current_currency)
+        
         
          # MAKE DESCRIPTION OF GPN (THEY ALL HAVE SAME DESCRIPTION)
         self.description.configure(text = all_opns[0]['description'])
@@ -748,24 +752,6 @@ class gpnFrame(navigation_side_bar):
         
         self.current_currency = currency
         self.sort_table(self.sort_option, currency)
-        
-        # if currency == "GBP":
-        #     all_opn = self.gpns_object.find_all_opns_from_gpn("GBP")
-        # elif currency == "USD":
-        #     all_opn = self.gpns_object.find_all_opns_from_gpn("USD")
-        # elif currency == "EUR":
-        #     all_opn = self.gpns_object.find_all_opns_from_gpn("EUR")
-            
-        # self.current_currency = currency
-            
-        # self.opn_table.insert(0, 2, 'Price (qty: 1 - 99), '+ str(currency))
-        # count = 1
-    
-        # for j in self.qty_index_descending:
-        #     price = all_opn[j]['pricing'][0]['priceBreaks'][0]['price']
-        #     self.opn_table.insert(count, 2, str(price))
-            
-        #     count += 1
         
     def sort_box_event(self, option):
         

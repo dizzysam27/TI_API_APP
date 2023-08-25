@@ -28,10 +28,10 @@ class Search_by_GPN():
         self.token = token
         self.gpn = gpn
         
-    def find_all_opns_from_gpn(self):
+    def find_all_opns_from_gpn(self, currency):
 
         api_call_headers = {'Authorization': 'Bearer ' + self.token}
-        url_post = 'https://transact.ti.com/v2/store/products?gpn='+ self.gpn +'&currency=USD&exclude-evms=true&page=0&size=20'
+        url_post = 'https://transact.ti.com/v2/store/products?gpn='+ self.gpn +'&currency=' + str(currency) + '&exclude-evms=true&page=0&size=20'
 
         api_call_response = requests.get(url_post, headers=api_call_headers)
 

@@ -392,7 +392,7 @@ class SearchPage(navigation_side_bar):
         
          # SET UP 3 BUTTONS WHICH LINK TO URLS 
          # FIRST BUTTON OPENS LINK TO VIEW WEBSITE, SECOND BUTTON OPENS DATASHEET AND THIRD BUTTON OPENS QUALITY ESTIMATOR URL
-        search_frame_tiwebsite_button = customtkinter.CTkButton(self.blank_frame, text="View on TI.com",command=self.tiwebsite_event, compound="top", fg_color="#CC0000", hover_color="#80200B")
+        search_frame_tiwebsite_button = customtkinter.CTkButton(self.blank_frame, text="Buy on TI.com",command=self.tiwebsite_event, compound="top", fg_color="#CC0000", hover_color="#80200B")
         search_frame_tiwebsite_button.grid(row=3, column=0, padx=5, pady=5, sticky='new')
         search_frame_datasheet_button = customtkinter.CTkButton(self.blank_frame, text="Datasheet",command=self.datasheet_event, compound="top", fg_color="#CC0000", hover_color="#80200B")
         search_frame_datasheet_button.grid(row=3, column=1, padx=5, pady=5, sticky='new')
@@ -669,6 +669,16 @@ class gpnFrame(navigation_side_bar):
         self.gpn_frame.grid_columnconfigure(0, weight =1)
         self.gpn_frame.grid_rowconfigure(1, weight=1)
         
+        self.current_currency = ''
+        
+        # DROPDOWN BOX TO CHANGE CURRENCY
+        self.currency_box = customtkinter.CTkComboBox(self.blank_frame, values = ["GBP", "USD", "EUR"], command = self.currency_select, border_color ="#CC0000", corner_radius=5, button_color="#CC0000", dropdown_fg_color = "white", button_hover_color="#80200B", dropdown_hover_color="#CC0000", state = 'readonly')
+        self.currency_box.grid(row=0, column =0, pady = (20, 0), padx = (30, 0), sticky = 'e')
+       
+        # DROPDOWN BOX TO SORT TABLE
+        self.sort_box = customtkinter.CTkComboBox(self.blank_frame, values = ["Inventory desc.", "Price desc.", "Package qty desc."], command = self.sort_box_event, border_color ="#CC0000", corner_radius=5, button_color="#CC0000", dropdown_fg_color = "white", button_hover_color="#80200B", dropdown_hover_color="#CC0000", state = 'readonly')
+        self.sort_box.grid(row=0, column =0, pady = (20, 0), padx = (30, 0), sticky = 'w')
+        
         self.description = customtkinter.CTkLabel(self.gpn_frame, text = '')
         self.description.grid(row=0, pady = (0, 10))
         
@@ -678,7 +688,7 @@ class gpnFrame(navigation_side_bar):
         except:
             pass
         
-        info_table = CTkTable(master=self.gpn_frame, row = rows+1 , column=2 ,values = '', command = self.command, wraplength = '200', corner_radius=0, header_color = "#CC0000", hover_color="#6666ff")
+        info_table = CTkTable(master=self.gpn_frame, row = rows+1 , column=4 ,values = '', command = self.command, wraplength = '200', corner_radius=0, header_color = "#CC0000", hover_color="#6666ff")
     
         return info_table
         
@@ -697,8 +707,10 @@ class gpnFrame(navigation_side_bar):
         self.gpn_frame.configure(label_text = gpn_name)
         
         # GET ALL OPNs
-        gpns_object = Retrieve_Product_Order_Info.Search_by_GPN(token, gpn_name)
-        all_opns = gpns_object.find_all_opns_from_gpn()
+        self.gpns_object = Retrieve_Product_Order_Info.Search_by_GPN(token, gpn_name)
+        
+        
+        all_opns = self.gpns_object.find_all_opns_from_gpn("GBP")
         
          # MAKE DESCRIPTION OF GPN (THEY ALL HAVE SAME DESCRIPTION)
         self.description.configure(text = all_opns[0]['description'])
@@ -706,25 +718,13 @@ class gpnFrame(navigation_side_bar):
         # MAKE TABLE TO DISPLAY ALL OPNS
         self.opn_table = self.make_table(len(all_opns))
         self.opn_table.insert(0, 0, 'OPN')
-        self.opn_table.insert(0, 1, 'Quantity')
+        self.opn_table.insert(0, 1, 'Inventory')
+        self.opn_table.insert(0, 3, 'Package qty | Carrier')
+        self.opn_table.insert(0, 2, 'Price (qty: 1 - 99), GBP')
+        self.opn_table.edit_row(0, text_color = "white")
         self.opn_table.grid(row = 1, column = 0, sticky='new')
         
-        # ARRAYS FOR PART NUMBER AND QUANTITY
-        qty = []
-        
-        for i in range(len(all_opns)):
-            qty.append(all_opns[i]['quantity'])
-            
-        qty_index_descending = numpy.argsort(qty)[::-1]
-        
-        count = 1
-        for j in qty_index_descending:
-            part_number = all_opns[j]['tiPartNumber']
-            self.opn_table.insert(count, 0, part_number)
-            
-            self.opn_table.insert(count, 1, qty[j])
-            
-            count += 1
+        self.sort_table("Inventory desc.", "GBP")
 
     def command(self, position):
         
@@ -744,6 +744,89 @@ class gpnFrame(navigation_side_bar):
         self.controller.show_frame('SearchPage')
         self.search_page_object.search_event(opn) 
 
+    def currency_select(self, currency):
+        
+        self.current_currency = currency
+        self.sort_table(self.sort_option, currency)
+        
+        # if currency == "GBP":
+        #     all_opn = self.gpns_object.find_all_opns_from_gpn("GBP")
+        # elif currency == "USD":
+        #     all_opn = self.gpns_object.find_all_opns_from_gpn("USD")
+        # elif currency == "EUR":
+        #     all_opn = self.gpns_object.find_all_opns_from_gpn("EUR")
+            
+        # self.current_currency = currency
+            
+        # self.opn_table.insert(0, 2, 'Price (qty: 1 - 99), '+ str(currency))
+        # count = 1
+    
+        # for j in self.qty_index_descending:
+        #     price = all_opn[j]['pricing'][0]['priceBreaks'][0]['price']
+        #     self.opn_table.insert(count, 2, str(price))
+            
+        #     count += 1
+        
+    def sort_box_event(self, option):
+        
+        self.sort_table(option, self.current_currency)
+            
+    def sort_desc_index(self, data_dict, name):
+        
+        data_array = []
+        
+        if name != "price":
+            for i in range(len(data_dict)):
+                data_array.append(data_dict[i][name])
+        elif name == "price":
+            for i in range(len(data_dict)):
+                data_array.append(data_dict[i]['pricing'][0]['priceBreaks'][0]['price'])
+        
+        index_descending = numpy.argsort(data_array)[::-1]
+        
+        return index_descending
+            
+    def sort_table(self, option, currency):
+            
+            all_opns = self.gpns_object.find_all_opns_from_gpn(currency)
+            
+            if option == "Inventory desc.":
+                name = "quantity"
+            elif option == "Price desc.":
+                name = "price"
+            elif option == "Package qty desc.":
+                name = 'standardPackQuantity'
+                
+            self.sort_option = option
+                
+            desc_index = self.sort_desc_index(all_opns, name) 
+            carrier = ''
+            
+            self.opn_table.insert(0, 2, 'Price (qty: 1 - 99), ' + self.current_currency)
+            
+            print(self.current_currency)
+            print(self.sort_option)
+            count = 1
+            for j in desc_index:
+                
+                part_number = all_opns[j]['tiPartNumber']
+                price = all_opns[j]['pricing'][0]['priceBreaks'][0]['price']
+                qty = all_opns[j]['quantity']
+                
+                pack_quantity = all_opns[j]['standardPackQuantity']
+                if pack_quantity > 1000:
+                    carrier = 'Large T&R'
+                else:
+                    carrier = 'Small T&R'
+                
+                self.opn_table.insert(count, 0, part_number)
+                self.opn_table.insert(count, 1, qty)
+                self.opn_table.insert(count, 2, str(price))
+                
+                self.opn_table.insert(count, 3, str(pack_quantity)+ ' | ' + carrier)
+            
+                count += 1
+    
 class SavedFrame(navigation_side_bar):
     
     def __init__(self, parent, controller):
